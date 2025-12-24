@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 const Screenshots = () => {
   const [activeScreenshot, setActiveScreenshot] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   const screenshotData = [
     { 
@@ -59,17 +60,19 @@ const Screenshots = () => {
     setActiveScreenshot(id);
     const screenshot = screenshotData.find(item => item.id === id);
     if (screenshot) {
-      setSelectedImage({
-        image: screenshot.image,
-        title: screenshot.title,
-        description: screenshot.description
-      });
+      setSelectedImage(screenshot);
+      setIsModalOpen(true);
+      document.body.style.overflow = 'hidden';
     }
   };
 
   const closeScreenshot = () => {
-    setActiveScreenshot(null);
-    setSelectedImage(null);
+    setIsModalOpen(false);
+    setTimeout(() => {
+      setActiveScreenshot(null);
+      setSelectedImage(null);
+      document.body.style.overflow = 'auto';
+    }, 300);
   };
 
   const handleNext = () => {
@@ -84,22 +87,19 @@ const Screenshots = () => {
     handleScreenshotClick(screenshotData[prevIndex].id);
   };
 
-  // Close on escape key
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') closeScreenshot();
     };
     
-    if (activeScreenshot) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+    if (isModalOpen) {
+      window.addEventListener('keydown', handleEscape);
     }
     
     return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'auto';
+      window.removeEventListener('keydown', handleEscape);
     };
-  }, [activeScreenshot]);
+  }, [isModalOpen]);
 
   return (
     <>
@@ -123,6 +123,7 @@ const Screenshots = () => {
                   <img 
                     src={item.image} 
                     alt={item.title}
+                    loading="lazy"
                     className="thumbnail-image"
                   />
                 </div>
@@ -133,7 +134,13 @@ const Screenshots = () => {
               <div className="screenshot-info">
                 <h3>{item.title}</h3>
                 <p>{item.description}</p>
-                <button className="view-btn">
+                <button 
+                  className="view-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleScreenshotClick(item.id);
+                  }}
+                >
                   View Screenshot →
                 </button>
               </div>
@@ -153,6 +160,7 @@ const Screenshots = () => {
                 <img 
                   src={item.image} 
                   alt={item.title}
+                  loading="lazy"
                   className="gallery-thumbnail"
                 />
                 <div className="thumbnail-label">{item.title}</div>
@@ -163,13 +171,13 @@ const Screenshots = () => {
       </section>
 
       {/* Screenshot Modal */}
-      {activeScreenshot && selectedImage && (
-        <div className="screenshot-modal-overlay" onClick={closeScreenshot}>
-          <div className="screenshot-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={closeScreenshot}>
-              ✕
-            </button>
-            
+      <div className={`screenshot-modal-overlay ${isModalOpen ? 'open' : ''}`} onClick={closeScreenshot}>
+        <div className="screenshot-modal" onClick={(e) => e.stopPropagation()}>
+          <button className="modal-close-btn" onClick={closeScreenshot} aria-label="Close">
+            ✕
+          </button>
+          
+          {selectedImage && (
             <div className="modal-content">
               <div className="modal-image-container">
                 <img 
@@ -189,11 +197,11 @@ const Screenshots = () => {
                 <h2>{selectedImage.title}</h2>
                 <p className="modal-description">{selectedImage.description}</p>
                 
-                {screenshotData.find(item => item.id === activeScreenshot)?.features && (
+                {selectedImage.features && (
                   <div className="modal-features">
                     <h4>Key Features:</h4>
                     <ul>
-                      {screenshotData.find(item => item.id === activeScreenshot).features.map((feature, index) => (
+                      {selectedImage.features.map((feature, index) => (
                         <li key={index}>✓ {feature}</li>
                       ))}
                     </ul>
@@ -214,9 +222,9 @@ const Screenshots = () => {
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </>
   );
 };
